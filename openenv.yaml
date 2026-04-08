@@ -1,0 +1,68 @@
+name: "EmailTriagePro"
+version: "1.0.0"
+description: "An AI agent environment for real-world email triage. The agent must classify emails by category, set priority, and decide routing actions across 3 difficulty levels."
+author: "Nainikka"
+tags: ["openenv", "email-triage", "nlp", "classification"]
+
+tasks:
+  - id: "task_1_easy"
+    name: "Basic Spam Detection"
+    difficulty: "easy"
+    max_steps: 5
+    description: "Binary classification — identify Spam vs Not Spam."
+    success_threshold: 0.8
+
+  - id: "task_2_medium"
+    name: "Email Category and Priority"
+    difficulty: "medium"
+    max_steps: 10
+    description: "Classify into 7 categories AND assign correct priority (High/Medium/Low)."
+    success_threshold: 0.6
+
+  - id: "task_3_hard"
+    name: "Full Email Triage"
+    difficulty: "hard"
+    max_steps: 15
+    description: "Classify category, set priority, AND decide routing action (escalate/archive/forward_to_dev/etc)."
+    success_threshold: 0.5
+
+observation_space:
+  type: "object"
+  fields:
+    email_id: "string — unique identifier for the email"
+    subject: "string — email subject line"
+    content: "string — full email body text"
+    sender: "string — sender email address"
+    current_status: "string — Unread | Processed | Done"
+    possible_actions: "list[string] — available action types for current task"
+    task_name: "string — human-readable task name"
+    emails_remaining: "integer — emails left in queue"
+    step_count: "integer — current step number"
+
+action_space:
+  type: "object"
+  fields:
+    action_type:
+      type: "string"
+      enum: ["categorize", "set_priority", "decide_action", "full_triage"]
+    value:
+      type: "string"
+      description: |
+        For categorize: one of [Spam, Urgent, Technical, HR, Billing, Support, General]
+        For set_priority: one of [High, Medium, Low]
+        For decide_action: one of [auto_reply, escalate, archive, forward_to_dev, forward_to_billing, ignore]
+        For full_triage: pipe-separated string "Category|Priority|Action" e.g. "Spam|Low|archive"
+
+reward:
+  type: "float"
+  range: [0.0, 1.0]
+  description: "Partial reward per action. Full triage = category(0.4) + priority(0.3) + action(0.3)."
+  partial_credit: true
+
+endpoints:
+  reset: "POST /reset?task_id={task_id}"
+  step: "POST /step"
+  state: "GET /state"
+  validate: "GET /validate"
+  emails: "GET /emails"
+  tasks: "GET /tasks"
